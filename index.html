@@ -22,7 +22,7 @@
         <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <h1 class="text-4xl font-black italic text-zera-yellow tracking-tighter">ZERA ESTOQUE</h1>
             <div id="auth-section">
-                <button onclick="abrirModalLogin()" class="bg-zera-orange text-white px-6 py-2 rounded-full font-bold">Entrar / Cadastrar</button>
+                <button onclick="abrirModalLogin()" class="bg-zera-orange text-white px-6 py-2 rounded-full font-bold shadow-md hover:scale-105 transition">Entrar / Cadastrar</button>
             </div>
         </div>
     </header>
@@ -38,18 +38,17 @@
                     BUSCAR
                 </button>
             </div>
-            <p class="mt-4 text-gray-400 text-sm">Filtro Ativo: Apenas vendedores com 3+ estrelas.</p>
+            <p class="mt-4 text-gray-400 text-sm font-bold">🛡️ Filtro de Segurança Máxima: Apenas vendedores 4+ estrelas.</p>
         </div>
 
         <div id="lista-produtos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-16">
             <div class="col-span-full text-center py-20 border-2 border-dashed border-gray-700 rounded-3xl text-gray-500 text-xl">
-                Pronto para garimpar ofertas reais!
+                Pronto para o garimpo de alta qualidade!
             </div>
         </div>
     </main>
 
     <script>
-        // Configurações do seu Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAOIasecH_3yC4W8KTWfP1I4OGkbiTs77s",
             authDomain: "zera-estoque-ed585.firebaseapp.com",
@@ -66,59 +65,53 @@
             const container = document.getElementById('lista-produtos');
             if (!termo) return alert("Digite algo!");
 
-            container.innerHTML = `<div class="col-span-full text-center text-zera-yellow text-2xl animate-pulse font-bold text-orange-500">CONSULTANDO APIS DA AMAZON E MERCADO LIVRE...</div>`;
+            container.innerHTML = `<div class="col-span-full text-center text-zera-yellow text-2xl animate-pulse font-bold">FILTRANDO AS MELHORES OFERTAS (4-5 ESTRELAS)...</div>`;
 
-            // Grava a busca no Firebase
             db.collection("buscas").add({ produto: termo, data: new Date() });
 
             try {
-                // Chamada para a função que processa as APIs na Vercel
                 const response = await fetch(`/api/search?q=${termo}`);
                 const produtos = await response.json();
-
                 renderizarProdutos(produtos);
             } catch (error) {
-                // Simulação enquanto as APIs finais terminam de propagar no Redeploy
+                // Mensagem amigável caso a API ainda esteja conectando
                 setTimeout(() => {
-                    container.innerHTML = `
-                        <div class="bg-gray-800 p-5 rounded-2xl border-b-4 border-zera-orange card-produto">
-                            <div class="bg-white h-40 rounded-lg mb-4 flex items-center justify-center text-black font-bold">MERCADO LIVRE</div>
-                            <h3 class="font-bold text-lg leading-tight line-clamp-2">${termo} em Oferta</h3>
-                            <div class="text-zera-yellow text-2xl font-black mt-2 italic">R$ --,--</div>
-                            <div class="text-green-400 text-xs mt-1 font-bold">⭐⭐⭐⭐ (Vendedor Verificado)</div>
-                            <button class="w-full bg-zera-orange mt-4 py-3 rounded-lg font-bold">VER OFERTA</button>
-                        </div>
-                    `;
-                }, 800);
+                    container.innerHTML = `<div class="col-span-full text-center text-gray-400">Estamos conectando com Amazon e Mercado Livre. Tente buscar novamente em 1 minuto.</div>`;
+                }, 1500);
             }
         }
 
         function renderizarProdutos(lista) {
             const container = document.getElementById('lista-produtos');
             container.innerHTML = "";
-            lista.forEach(prod => {
-                // Filtro de Segurança: 3 estrelas ou mais
-                if (prod.rating >= 3) {
-                    container.innerHTML += `
-                        <div class="bg-gray-800 p-5 rounded-2xl border-b-4 border-zera-orange card-produto">
-                            <img src="${prod.image}" class="h-40 w-full object-contain bg-white rounded-lg mb-4">
-                            <span class="text-[10px] bg-blue-600 px-2 py-1 rounded font-bold">${prod.store.toUpperCase()}</span>
-                            <h3 class="font-bold text-sm mt-2 line-clamp-2">${prod.title}</h3>
-                            <div class="text-zera-yellow text-2xl font-black mt-2 italic">R$ ${prod.price}</div>
-                            <div class="text-green-400 text-xs mt-1">⭐⭐⭐⭐ (${prod.rating} estrelas)</div>
-                            <a href="${prod.link}" target="_blank" class="block text-center w-full bg-zera-orange mt-4 py-3 rounded-lg font-bold">VER OFERTA</a>
-                        </div>
-                    `;
-                }
+            
+            // AQUI ESTÁ A CORREÇÃO: prod.rating >= 4
+            const produtosFiltrados = lista.filter(prod => prod.rating >= 4);
+
+            if(produtosFiltrados.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center text-gray-500">Nenhum produto com 4 ou 5 estrelas encontrado para "${document.getElementById('input-busca').value}".</div>`;
+                return;
+            }
+
+            produtosFiltrados.forEach(prod => {
+                container.innerHTML += `
+                    <div class="bg-gray-800 p-5 rounded-2xl border-b-4 border-zera-orange card-produto">
+                        <img src="${prod.image}" class="h-40 w-full object-contain bg-white rounded-lg mb-4">
+                        <span class="text-[10px] bg-blue-600 px-2 py-1 rounded font-bold">${prod.store.toUpperCase()}</span>
+                        <h3 class="font-bold text-sm mt-2 line-clamp-2">${prod.title}</h3>
+                        <div class="text-zera-yellow text-2xl font-black mt-2 italic">R$ ${prod.price}</div>
+                        <div class="text-green-400 text-xs mt-1 font-bold">⭐⭐⭐⭐⭐ (${prod.rating} Estrelas)</div>
+                        <a href="${prod.link}" target="_blank" class="block text-center w-full bg-zera-orange mt-4 py-3 rounded-lg font-bold hover:bg-orange-600 transition">VER OFERTA</a>
+                    </div>
+                `;
             });
         }
 
-        // Sistema de Login com Senha Forte
         function abrirModalLogin() {
             const email = prompt("Seu e-mail:");
             const senha = prompt("Sua senha (Mínimo 8 dígitos, letras e números):");
             const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-            if (!regex.test(senha)) return alert("ERRO: A senha não cumpre os requisitos de segurança do Zera Estoque.");
+            if (!regex.test(senha)) return alert("ERRO: A senha não cumpre os requisitos de segurança do Zera Estoque (8 dígitos, letras e números).");
             firebase.auth().createUserWithEmailAndPassword(email, senha)
                 .then(() => alert("Conta criada e protegida!"))
                 .catch(e => firebase.auth().signInWithEmailAndPassword(email, senha));
