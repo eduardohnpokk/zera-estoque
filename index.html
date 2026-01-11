@@ -12,6 +12,13 @@
         .bg-zera-orange { background-color: #FF8C00; }
         .card-produto { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #222; }
         .card-produto:hover { transform: translateY(-8px); border-color: #FF8C00; box-shadow: 0 15px 30px rgba(255, 140, 0, 0.2); }
+        
+        /* Animação suave para o selo aparecer */
+        @keyframes badge-in {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-badge { animation: badge-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     </style>
 </head>
 <body class="bg-zera-dark text-white font-sans min-h-screen">
@@ -33,7 +40,7 @@
                 <button onclick="executarBuscaReal()" class="bg-zera-orange px-6 md:px-12 font-black text-xl md:text-2xl text-white uppercase italic hover:bg-orange-600 transition">BUSCAR</button>
             </div>
             <p class="mt-4 text-gray-500 text-sm font-bold uppercase tracking-widest">Amazon & Mercado Livre</p>
-            <p class="mt-2 text-zera-yellow text-xs font-black italic">🛡️ SEGURANÇA MÁXIMA: APENAS VENDEDORES 4 E 5 ESTRELAS.</p>
+            <p class="mt-2 text-zera-yellow text-xs font-black italic">🛡️ SEGURANÇA MÁXIMA: APENAS VENDEDORES VERDE (ELITE).</p>
         </div>
 
         <div id="lista-produtos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-16 pb-20">
@@ -51,10 +58,11 @@
             
             if (!q) return;
 
-            console.log("Iniciando busca por:", q);
+            console.log("Iniciando busca Zera Estoque por:", q);
             container.innerHTML = `<div class="col-span-full text-zera-yellow text-2xl animate-pulse font-black uppercase py-20">ZERA ESTOQUE: VARRENDO O MERCADO...</div>`;
 
             try {
+                // Chamada para a API com cache-breaker
                 const response = await fetch(`/api/search?q=${encodeURIComponent(q)}&t=${Date.now()}`);
                 
                 if (!response.ok) throw new Error("Erro no servidor");
@@ -63,38 +71,50 @@
                 console.log("Produtos recebidos:", produtos);
                 
                 if (produtos.length === 0) {
-                    container.innerHTML = `<div class="col-span-full py-20 text-gray-400 font-bold">Nenhum vendedor de elite (4-5 estrelas) encontrado para este produto no momento.</div>`;
+                    container.innerHTML = `<div class="col-span-full py-20 text-gray-400 font-bold">Nenhum vendedor verificado (Elite) encontrado para este produto no momento.</div>`;
                     return;
                 }
 
-                // Renderização otimizada
-                container.innerHTML = produtos.map(prod => `
-                    <div class="bg-gray-900 p-5 rounded-3xl card-produto flex flex-col justify-between h-full text-left">
-                        <div>
-                            <div class="bg-white rounded-2xl mb-4 h-48 flex items-center justify-center p-4">
-                                <img src="${prod.image}" 
-                                     class="max-h-full max-w-full object-contain" 
-                                     onerror="this.src='https://placehold.co/200x200/EEE/31343C?text=Imagem+Indisponível'">
+                // Renderização da Lista de Cards
+                container.innerHTML = produtos.map(prod => {
+                    // Lógica do Selo de Elite (Apenas para nota 5)
+                    const seloElite = prod.rating === 5 
+                        ? `<div class="absolute -top-3 -right-3 bg-green-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg border-2 border-white flex items-center gap-1 z-10 animate-badge">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                            </svg> ELITE VERIFICADA
+                           </div>` 
+                        : '';
+
+                    return `
+                        <div class="bg-gray-900 p-5 rounded-3xl card-produto flex flex-col justify-between h-full text-left relative">
+                            ${seloElite}
+                            <div>
+                                <div class="bg-white rounded-2xl mb-4 h-48 flex items-center justify-center p-4 overflow-hidden">
+                                    <img src="${prod.image}" 
+                                         class="max-h-full max-w-full object-contain hover:scale-110 transition duration-500" 
+                                         onerror="this.src='https://placehold.co/200x200/EEE/31343C?text=Imagem+Indisponível'">
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-[10px] ${prod.store === 'Amazon' ? 'bg-orange-500' : 'bg-blue-700'} text-white px-2 py-1 rounded-full font-black uppercase tracking-tighter">${prod.store}</span>
+                                    <span class="${prod.rating === 5 ? 'text-yellow-400' : 'text-green-400'} font-bold text-sm italic">⭐ ${prod.rating}.0</span>
+                                </div>
+                                <h3 class="font-bold text-sm text-gray-100 line-clamp-2 mt-2 h-10 leading-tight">${prod.title}</h3>
                             </div>
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-[10px] ${prod.store === 'Amazon' ? 'bg-orange-500' : 'bg-blue-700'} text-white px-2 py-1 rounded-full font-black uppercase">${prod.store}</span>
-                                <span class="text-green-400 font-bold text-sm italic">⭐ ${prod.rating}.0</span>
+                            <div class="mt-4 border-t border-gray-800 pt-4">
+                                <div class="text-zera-yellow text-2xl font-black italic mb-4">
+                                    ${prod.price === 'CONSULTAR' ? 'R$ CONSULTAR' : 'R$ ' + prod.price}
+                                </div>
+                                <a href="${prod.link}" target="_blank" class="block text-center w-full bg-zera-orange py-3 rounded-xl font-black text-white hover:bg-orange-600 transition uppercase tracking-tighter shadow-lg">VER OFERTA</a>
                             </div>
-                            <h3 class="font-bold text-sm text-gray-100 line-clamp-2 mt-2 h-10">${prod.title}</h3>
                         </div>
-                        <div class="mt-4 border-t border-gray-800 pt-4">
-                            <div class="text-zera-yellow text-2xl font-black italic mb-4">
-                                ${prod.price === 'CONSULTAR' ? 'R$ CONSULTAR' : 'R$ ' + prod.price}
-                            </div>
-                            <a href="${prod.link}" target="_blank" class="block text-center w-full bg-zera-orange py-3 rounded-xl font-black text-white hover:bg-orange-600 transition uppercase tracking-tighter">VER OFERTA</a>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
 
             } catch (error) {
                 console.error("Erro na busca:", error);
                 container.innerHTML = `
-                    <div class="col-span-full p-10 bg-red-900/20 border border-red-500 rounded-3xl text-red-500 font-bold">
+                    <div class="col-span-full p-10 bg-red-900/20 border border-red-500 rounded-3xl text-red-500 font-bold text-center">
                         SISTEMA INSTÁVEL: Não conseguimos conectar aos parceiros. Tente novamente em instantes.
                     </div>`;
             }
