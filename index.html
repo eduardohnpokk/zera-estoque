@@ -14,8 +14,7 @@
         .bg-zera-blue { background-color: #0047AB; }
         .bg-zera-orange { background-color: #FF8C00; }
         .card-produto { transition: all 0.3s ease; border: 1px solid #333; }
-        .card-produto:hover { transform: translateY(-5px); border-color: #FF8C00; box-shadow: 0 10px 20px rgba(255, 140, 0, 0.2); }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .card-produto:hover { transform: translateY(-5px); border-color: #FF8C00; }
     </style>
 </head>
 <body class="bg-zera-dark text-white font-sans min-h-screen">
@@ -24,39 +23,23 @@
         <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <h1 class="text-4xl font-black italic text-zera-yellow tracking-tighter uppercase">ZERA ESTOQUE</h1>
             <div id="auth-section">
-                <button onclick="abrirModalLogin()" class="bg-zera-orange text-white px-6 py-2 rounded-full font-bold shadow-md hover:scale-105 transition">
-                    Entrar / Cadastrar
-                </button>
+                <button onclick="abrirModalLogin()" class="bg-zera-orange text-white px-6 py-2 rounded-full font-bold shadow-md hover:scale-105 transition">Entrar / Cadastrar</button>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto mt-12 px-4">
-        <div class="max-w-3xl mx-auto text-center">
-            <h2 class="text-3xl font-bold mb-6 text-white uppercase tracking-wide">Buscador Inteligente Amazon & Mercado Livre</h2>
-            <div class="flex shadow-2xl">
-                <input type="text" id="input-busca" placeholder="O que você quer pagar barato hoje?" 
-                    class="w-full p-5 rounded-l-xl text-black text-lg outline-none border-2 border-zera-orange">
-                <button onclick="executarBuscaReal()" 
-                    class="bg-zera-orange px-8 rounded-r-xl font-black text-xl hover:bg-orange-600 transition-colors">
-                    BUSCAR
-                </button>
-            </div>
-            <p class="mt-4 text-gray-400 text-sm font-bold flex items-center justify-center gap-2">
-                🛡️ Filtro de Segurança Máxima: Apenas vendedores 4+ estrelas.
-            </p>
+    <main class="container mx-auto mt-12 px-4 text-center">
+        <h2 class="text-3xl font-bold mb-6 uppercase">Buscador Inteligente Amazon & Mercado Livre</h2>
+        <div class="max-w-3xl mx-auto flex shadow-2xl">
+            <input type="text" id="input-busca" placeholder="O que você quer pagar barato?" class="w-full p-5 rounded-l-xl text-black text-lg outline-none border-2 border-zera-orange">
+            <button onclick="executarBuscaReal()" class="bg-zera-orange px-8 rounded-r-xl font-black text-xl hover:bg-orange-600 transition-colors">BUSCAR</button>
         </div>
+        <p class="mt-4 text-gray-400 text-sm font-bold italic">🛡️ Filtro de Segurança: Apenas Vendedores 4+ Estrelas.</p>
 
         <div id="lista-produtos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-16">
-            <div class="col-span-full text-center py-20 border-2 border-dashed border-gray-700 rounded-3xl">
-                <p class="text-xl text-gray-500">Aguardando sua busca por ofertas reais...</p>
-            </div>
+            <p class="col-span-full text-gray-500 text-xl py-20 border-2 border-dashed border-gray-800 rounded-3xl font-bold italic">Aguardando busca...</p>
         </div>
     </main>
-
-    <footer class="mt-20 p-10 bg-black text-center border-t border-gray-900">
-        <p class="text-gray-600 text-sm font-bold tracking-widest uppercase">© 2026 Zera Estoque - Inteligência em Ofertas</p>
-    </footer>
 
     <script>
         const firebaseConfig = {
@@ -68,74 +51,46 @@
             appId: "1:160560630668:web:a1843471ef7375fb0924a9"
         };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
 
         async function executarBuscaReal() {
-            const termo = document.getElementById('input-busca').value;
+            const q = document.getElementById('input-busca').value;
             const container = document.getElementById('lista-produtos');
-            if (!termo) return alert("Por favor, digite um produto.");
+            if (!q) return;
 
-            container.innerHTML = `<div class="col-span-full text-center text-zera-yellow text-2xl animate-pulse font-bold">ZERA ESTOQUE: GARIMPANDO OFERTAS 4-5 ESTRELAS...</div>`;
-
-            db.collection("buscas").add({ produto: termo, data: new Date() });
+            container.innerHTML = `<div class="col-span-full text-zera-yellow text-2xl animate-pulse font-black italic">ZERA ESTOQUE: GARIMPANDO OFERTAS 4-5 ESTRELAS...</div>`;
 
             try {
-                const response = await fetch(`/api/search?q=${encodeURIComponent(termo)}`);
+                const response = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
                 const produtos = await response.json();
-                renderizarProdutos(produtos);
-            } catch (error) {
-                container.innerHTML = `<div class="col-span-full text-center text-gray-400">Conectando APIs... Tente novamente em alguns segundos.</div>`;
-            }
-        }
-
-        function renderizarProdutos(lista) {
-            const container = document.getElementById('lista-produtos');
-            container.innerHTML = "";
-            
-            // Filtro rigoroso: apenas nota 4 ou 5
-            const filtrados = lista.filter(p => p.rating >= 4);
-
-            if (filtrados.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center text-gray-500 text-xl">Nenhuma oferta de alta qualidade encontrada.</div>`;
-                return;
-            }
-
-            filtrados.forEach(prod => {
-                container.innerHTML += `
-                    <div class="bg-gray-900 p-4 rounded-2xl card-produto flex flex-col justify-between h-full">
-                        <div>
-                            <div class="bg-white rounded-xl mb-4 overflow-hidden h-48 flex items-center justify-center p-2">
-                                <img src="${prod.image}" class="max-h-full max-w-full object-contain" onerror="this.src='https://m.media-amazon.com/images/G/32/social_sharing/amazon_logo.jpg'">
+                
+                container.innerHTML = "";
+                produtos.forEach(prod => {
+                    if (prod.rating >= 4) { // FILTRO DE SEGURANÇA MÁXIMA
+                        container.innerHTML += `
+                            <div class="bg-gray-900 p-4 rounded-2xl card-produto flex flex-col justify-between h-full">
+                                <div>
+                                    <div class="bg-white rounded-xl mb-4 h-48 flex items-center justify-center p-2 overflow-hidden">
+                                        <img src="${prod.image}" class="max-h-full max-w-full object-contain" onerror="this.src='https://m.media-amazon.com/images/G/31/social_sharing/amazon_logo.jpg'">
+                                    </div>
+                                    <span class="text-[10px] bg-blue-700 text-white px-2 py-1 rounded font-black uppercase">${prod.store}</span>
+                                    <h3 class="font-bold text-sm text-gray-100 line-clamp-2 mt-2 h-10">${prod.title}</h3>
+                                </div>
+                                <div class="mt-4">
+                                    <div class="text-zera-yellow text-2xl font-black italic">R$ ${prod.price}</div>
+                                    <div class="text-green-400 font-bold text-xs mb-3 italic">⭐ ${prod.rating}.0 (Seguro)</div>
+                                    <a href="${prod.link}" target="_blank" class="block text-center w-full bg-zera-orange py-3 rounded-xl font-black text-white hover:bg-orange-600 transition shadow-lg">VER OFERTA</a>
+                                </div>
                             </div>
-                            <span class="text-[10px] bg-blue-700 text-white px-2 py-1 rounded font-black uppercase">${prod.store}</span>
-                            <h3 class="font-bold text-sm text-gray-100 line-clamp-2 mt-2 h-10">${prod.title}</h3>
-                        </div>
-                        <div class="mt-4">
-                            <div class="text-zera-yellow text-2xl font-black italic">R$ ${prod.price}</div>
-                            <div class="text-green-400 font-bold text-xs mb-3">⭐ ${prod.rating}.0 (Seguro)</div>
-                            <a href="${prod.link}" target="_blank" class="block text-center w-full bg-zera-orange py-3 rounded-xl font-black text-white hover:bg-orange-600 transition">
-                                VER OFERTA
-                            </a>
-                        </div>
-                    </div>
-                `;
-            });
+                        `;
+                    }
+                });
+            } catch (error) {
+                container.innerHTML = `<p class="col-span-full text-red-500 font-bold">Erro ao conectar. Tente em 10 segundos.</p>`;
+            }
         }
 
         function abrirModalLogin() {
-            const email = prompt("E-mail:");
-            const senha = prompt("Senha (8+ caracteres, letras e números):");
-            const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-            if (!regex.test(senha)) return alert("SEGURANÇA FRACA: Use 8 caracteres com letras e números.");
-            
-            firebase.auth().signInWithEmailAndPassword(email, senha)
-                .then(() => {
-                    alert("Acesso autorizado!");
-                    document.getElementById('auth-section').innerHTML = `<span class="text-zera-yellow font-bold">${email.split('@')[0]}</span>`;
-                })
-                .catch(() => {
-                    firebase.auth().createUserWithEmailAndPassword(email, senha).then(() => alert("Conta criada!"));
-                });
+            alert("Sistema de acesso restrito ao administrador.");
         }
     </script>
 </body>
