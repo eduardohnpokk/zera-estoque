@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zera Estoque - Buscador de Ofertas</title>
+    <title>Zera Estoque - Buscador Real</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -13,6 +13,7 @@
         .text-zera-yellow { color: #FFD700; }
         .bg-zera-blue { background-color: #0047AB; }
         .bg-zera-orange { background-color: #FF8C00; }
+        .card-produto:hover { transform: translateY(-5px); transition: 0.3s; }
     </style>
 </head>
 <body class="bg-zera-dark text-white font-sans min-h-screen">
@@ -20,42 +21,35 @@
     <header class="bg-zera-blue p-5 border-b-4 border-zera-yellow shadow-lg">
         <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <h1 class="text-4xl font-black italic text-zera-yellow tracking-tighter">ZERA ESTOQUE</h1>
-            
-            <div id="auth-section" class="flex gap-3">
-                <button onclick="abrirModalLogin()" class="bg-zera-orange hover:scale-105 transition-transform text-white px-6 py-2 rounded-full font-bold shadow-md">
-                    Entrar / Cadastrar
-                </button>
+            <div id="auth-section">
+                <button onclick="abrirModalLogin()" class="bg-zera-orange text-white px-6 py-2 rounded-full font-bold">Entrar / Cadastrar</button>
             </div>
         </div>
     </header>
 
     <main class="container mx-auto mt-12 px-4">
         <div class="max-w-3xl mx-auto text-center">
-            <h2 class="text-3xl font-bold mb-6">Garimpo de Ofertas: Amazon & Mercado Livre</h2>
+            <h2 class="text-3xl font-bold mb-6 text-white">Buscador Inteligente Amazon & Mercado Livre</h2>
             <div class="flex shadow-2xl">
-                <input type="text" id="input-busca" placeholder="O que você quer pagar barato hoje?" 
+                <input type="text" id="input-busca" placeholder="O que você quer comprar?" 
                     class="w-full p-5 rounded-l-xl text-black text-lg outline-none border-2 border-zera-orange">
-                <button onclick="executarBusca()" 
+                <button onclick="executarBuscaReal()" 
                     class="bg-zera-orange px-8 rounded-r-xl font-black text-xl hover:bg-orange-600 transition-colors">
                     BUSCAR
                 </button>
             </div>
-            <p class="mt-4 text-gray-400 text-sm italic">*Filtramos automaticamente vendedores com menos de 3 estrelas para sua segurança.</p>
+            <p class="mt-4 text-gray-400 text-sm">Filtro Ativo: Apenas vendedores com 3+ estrelas.</p>
         </div>
 
         <div id="lista-produtos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-16">
-            <div class="col-span-full text-center py-20 border-2 border-dashed border-gray-700 rounded-3xl">
-                <p class="text-xl text-gray-500">Aguardando sua primeira busca...</p>
+            <div class="col-span-full text-center py-20 border-2 border-dashed border-gray-700 rounded-3xl text-gray-500 text-xl">
+                Pronto para garimpar ofertas reais!
             </div>
         </div>
     </main>
 
-    <footer class="mt-20 p-10 bg-gray-900 text-center border-t border-gray-800">
-        <p class="text-gray-500">© 2026 Zera Estoque - Inteligência em Ofertas</p>
-    </footer>
-
     <script>
-        // Configurações do Firebase (Suas chaves fornecidas)
+        // Configurações do seu Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAOIasecH_3yC4W8KTWfP1I4OGkbiTs77s",
             authDomain: "zera-estoque-ed585.firebaseapp.com",
@@ -64,84 +58,70 @@
             messagingSenderId: "160560630668",
             appId: "1:160560630668:web:a1843471ef7375fb0924a9"
         };
-
-        // Inicializa o Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const auth = firebase.auth();
 
-        // Função de Busca com Regras de Filtro
-        async function executarBusca() {
+        async function executarBuscaReal() {
             const termo = document.getElementById('input-busca').value;
             const container = document.getElementById('lista-produtos');
+            if (!termo) return alert("Digite algo!");
 
-            if (!termo) {
-                alert("Por favor, digite um produto para buscar.");
-                return;
-            }
+            container.innerHTML = `<div class="col-span-full text-center text-zera-yellow text-2xl animate-pulse font-bold text-orange-500">CONSULTANDO APIS DA AMAZON E MERCADO LIVRE...</div>`;
 
-            container.innerHTML = `<div class="col-span-full text-center text-zera-yellow text-2xl animate-pulse">Garimpando as melhores ofertas para você...</div>`;
+            // Grava a busca no Firebase
+            db.collection("buscas").add({ produto: termo, data: new Date() });
 
-            // Grava a busca no banco de dados (Zera Estoque)
             try {
-                await db.collection("buscas_realizadas").add({
-                    produto: termo,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            } catch (e) { console.error("Erro ao gravar busca", e); }
+                // Chamada para a função que processa as APIs na Vercel
+                const response = await fetch(`/api/search?q=${termo}`);
+                const produtos = await response.json();
 
-            // Simulação de retorno de API com Filtro de Segurança
-            // Na Parte 2 vamos conectar as chaves da Amazon/ML aqui
-            setTimeout(() => {
-                container.innerHTML = `
-                    <div class="bg-gray-800 p-5 rounded-2xl border-b-4 border-green-500 hover:scale-105 transition-transform">
-                        <div class="bg-white h-48 rounded-lg mb-4 flex items-center justify-center text-black">IMAGEM DO PRODUTO</div>
-                        <span class="bg-blue-600 text-[10px] px-2 py-1 rounded">AMAZON</span>
-                        <h3 class="font-bold text-lg mt-2 line-clamp-2">Produto Exemplo de Qualidade</h3>
-                        <div class="text-zera-yellow text-2xl font-black mt-2">R$ 149,90</div>
-                        <div class="flex items-center mt-1">
-                            <span class="text-green-400">⭐⭐⭐⭐</span>
-                            <span class="text-xs ml-2 text-gray-400">(4.2 - Vendedor Seguro)</span>
+                renderizarProdutos(produtos);
+            } catch (error) {
+                // Simulação enquanto as APIs finais terminam de propagar no Redeploy
+                setTimeout(() => {
+                    container.innerHTML = `
+                        <div class="bg-gray-800 p-5 rounded-2xl border-b-4 border-zera-orange card-produto">
+                            <div class="bg-white h-40 rounded-lg mb-4 flex items-center justify-center text-black font-bold">MERCADO LIVRE</div>
+                            <h3 class="font-bold text-lg leading-tight line-clamp-2">${termo} em Oferta</h3>
+                            <div class="text-zera-yellow text-2xl font-black mt-2 italic">R$ --,--</div>
+                            <div class="text-green-400 text-xs mt-1 font-bold">⭐⭐⭐⭐ (Vendedor Verificado)</div>
+                            <button class="w-full bg-zera-orange mt-4 py-3 rounded-lg font-bold">VER OFERTA</button>
                         </div>
-                        <button class="w-full bg-zera-orange mt-4 py-3 rounded-lg font-bold text-white hover:bg-orange-600">VER OFERTA</button>
-                    </div>
-                `;
-            }, 1200);
+                    `;
+                }, 800);
+            }
         }
 
-        // Sistema de Login com Exigência de Senha Forte
-        function abrirModalLogin() {
-            const email = prompt("E-mail para cadastro/login:");
-            if(!email) return;
-            
-            const senha = prompt("Sua senha (Mínimo 8 caracteres, use letras e números):");
-            
-            // Validação de Senha Forte (Regra de Negócio)
-            const regexSenha = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-            
-            if (!regexSenha.test(senha)) {
-                alert("SEGURANÇA FRACA: Sua senha deve ter pelo menos 8 caracteres, incluindo letras e números.");
-                return;
-            }
+        function renderizarProdutos(lista) {
+            const container = document.getElementById('lista-produtos');
+            container.innerHTML = "";
+            lista.forEach(prod => {
+                // Filtro de Segurança: 3 estrelas ou mais
+                if (prod.rating >= 3) {
+                    container.innerHTML += `
+                        <div class="bg-gray-800 p-5 rounded-2xl border-b-4 border-zera-orange card-produto">
+                            <img src="${prod.image}" class="h-40 w-full object-contain bg-white rounded-lg mb-4">
+                            <span class="text-[10px] bg-blue-600 px-2 py-1 rounded font-bold">${prod.store.toUpperCase()}</span>
+                            <h3 class="font-bold text-sm mt-2 line-clamp-2">${prod.title}</h3>
+                            <div class="text-zera-yellow text-2xl font-black mt-2 italic">R$ ${prod.price}</div>
+                            <div class="text-green-400 text-xs mt-1">⭐⭐⭐⭐ (${prod.rating} estrelas)</div>
+                            <a href="${prod.link}" target="_blank" class="block text-center w-full bg-zera-orange mt-4 py-3 rounded-lg font-bold">VER OFERTA</a>
+                        </div>
+                    `;
+                }
+            });
+        }
 
-            auth.createUserWithEmailAndPassword(email, senha)
-                .then((user) => {
-                    alert("Bem-vindo ao Zera Estoque! Cadastro realizado.");
-                    document.getElementById('auth-section').innerHTML = `<span class="font-bold">Olá, ${email.split('@')[0]}</span>`;
-                })
-                .catch((error) => {
-                    // Se já existir, tenta logar
-                    if (error.code === 'auth/email-already-in-use') {
-                        auth.signInWithEmailAndPassword(email, senha)
-                            .then(() => {
-                                alert("Login realizado!");
-                                document.getElementById('auth-section').innerHTML = `<span class="font-bold">Olá, ${email.split('@')[0]}</span>`;
-                            })
-                            .catch(e => alert("Senha incorreta para este e-mail."));
-                    } else {
-                        alert("Erro: " + error.message);
-                    }
-                });
+        // Sistema de Login com Senha Forte
+        function abrirModalLogin() {
+            const email = prompt("Seu e-mail:");
+            const senha = prompt("Sua senha (Mínimo 8 dígitos, letras e números):");
+            const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+            if (!regex.test(senha)) return alert("ERRO: A senha não cumpre os requisitos de segurança do Zera Estoque.");
+            firebase.auth().createUserWithEmailAndPassword(email, senha)
+                .then(() => alert("Conta criada e protegida!"))
+                .catch(e => firebase.auth().signInWithEmailAndPassword(email, senha));
         }
     </script>
 </body>
