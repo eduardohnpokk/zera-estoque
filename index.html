@@ -10,79 +10,93 @@
         .text-zera-yellow { color: #FFD700; }
         .bg-zera-blue { background-color: #0047AB; }
         .bg-zera-orange { background-color: #FF8C00; }
-        .card-produto { transition: all 0.3s ease; border: 1px solid #333; }
-        .card-produto:hover { transform: translateY(-5px); border-color: #FF8C00; box-shadow: 0 10px 20px rgba(255, 140, 0, 0.4); }
+        .card-produto { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #222; }
+        .card-produto:hover { transform: translateY(-8px); border-color: #FF8C00; box-shadow: 0 15px 30px rgba(255, 140, 0, 0.2); }
     </style>
 </head>
 <body class="bg-zera-dark text-white font-sans min-h-screen">
 
     <header class="bg-zera-blue p-6 border-b-4 border-zera-yellow shadow-lg">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-6xl font-black italic text-zera-yellow tracking-tighter uppercase">ZERA ESTOQUE</h1>
-            <button class="bg-zera-orange text-white px-8 py-2 rounded-full font-bold">Entrar / Cadastrar</button>
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-4xl md:text-6xl font-black italic text-zera-yellow tracking-tighter uppercase">ZERA ESTOQUE</h1>
+            <button class="bg-zera-orange text-white px-8 py-2 rounded-full font-bold hover:scale-105 transition">Entrar / Cadastrar</button>
         </div>
     </header>
 
     <main class="container mx-auto mt-12 px-4 text-center">
         <div class="max-w-3xl mx-auto mb-10">
             <div class="flex shadow-2xl border-4 border-zera-orange rounded-2xl overflow-hidden bg-white">
-                <input type="text" id="input-busca" placeholder="O que você quer pagar barato?" class="w-full p-6 text-black text-xl outline-none font-bold">
-                <button onclick="executarBuscaReal()" class="bg-zera-orange px-12 font-black text-2xl text-white uppercase italic">BUSCAR</button>
+                <input type="text" id="input-busca" 
+                       onkeyup="if(event.key === 'Enter') executarBuscaReal()"
+                       placeholder="O que você quer pagar barato?" 
+                       class="w-full p-4 md:p-6 text-black text-lg md:text-xl outline-none font-bold">
+                <button onclick="executarBuscaReal()" class="bg-zera-orange px-6 md:px-12 font-black text-xl md:text-2xl text-white uppercase italic hover:bg-orange-600 transition">BUSCAR</button>
             </div>
             <p class="mt-4 text-gray-500 text-sm font-bold uppercase tracking-widest">Amazon & Mercado Livre</p>
             <p class="mt-2 text-zera-yellow text-xs font-black italic">🛡️ SEGURANÇA MÁXIMA: APENAS VENDEDORES 4 E 5 ESTRELAS.</p>
         </div>
 
         <div id="lista-produtos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-16 pb-20">
-            <div class="col-span-full text-center py-20 border-2 border-dashed border-gray-800 rounded-3xl text-gray-600 font-bold italic">Aguardando busca...</div>
+            <div class="col-span-full text-center py-20 border-2 border-dashed border-gray-800 rounded-3xl text-gray-600 font-bold italic">
+                Aguardando sua próxima grande oferta...
+            </div>
         </div>
     </main>
 
     <script>
         async function executarBuscaReal() {
-            const q = document.getElementById('input-busca').value;
+            const input = document.getElementById('input-busca');
+            const q = input.value.trim();
             const container = document.getElementById('lista-produtos');
+            
             if (!q) return;
 
             console.log("Iniciando busca por:", q);
-            container.innerHTML = `<div class="col-span-full text-zera-yellow text-2xl animate-pulse font-black uppercase">ZERA ESTOQUE: ACESSANDO SERVIDOR...</div>`;
+            container.innerHTML = `<div class="col-span-full text-zera-yellow text-2xl animate-pulse font-black uppercase py-20">ZERA ESTOQUE: VARRENDO O MERCADO...</div>`;
 
             try {
-                // Adicionamos um timestamp para evitar que o navegador use o cache antigo
                 const response = await fetch(`/api/search?q=${encodeURIComponent(q)}&t=${Date.now()}`);
                 
-                if (!response.ok) {
-                    throw new Error("Erro no servidor: " + response.status);
-                }
+                if (!response.ok) throw new Error("Erro no servidor");
 
                 const produtos = await response.json();
                 console.log("Produtos recebidos:", produtos);
                 
-                container.innerHTML = "";
-                produtos.forEach(prod => {
-                    container.innerHTML += `
-                        <div class="bg-gray-900 p-5 rounded-3xl card-produto flex flex-col justify-between h-full text-left">
-                            <div>
-                                <div class="bg-white rounded-2xl mb-4 h-48 flex items-center justify-center p-4">
-                                    <img src="${prod.image}" class="max-h-full max-w-full object-contain" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg'">
-                                </div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-[10px] bg-blue-700 text-white px-2 py-1 rounded-full font-black uppercase">${prod.store}</span>
-                                    <span class="text-green-400 font-bold text-sm italic">⭐ ${prod.rating}.0</span>
-                                </div>
-                                <h3 class="font-bold text-sm text-gray-100 line-clamp-2 mt-2 h-10">${prod.title}</h3>
+                if (produtos.length === 0) {
+                    container.innerHTML = `<div class="col-span-full py-20 text-gray-400 font-bold">Nenhum vendedor de elite (4-5 estrelas) encontrado para este produto no momento.</div>`;
+                    return;
+                }
+
+                // Renderização otimizada
+                container.innerHTML = produtos.map(prod => `
+                    <div class="bg-gray-900 p-5 rounded-3xl card-produto flex flex-col justify-between h-full text-left">
+                        <div>
+                            <div class="bg-white rounded-2xl mb-4 h-48 flex items-center justify-center p-4">
+                                <img src="${prod.image}" 
+                                     class="max-h-full max-w-full object-contain" 
+                                     onerror="this.src='https://placehold.co/200x200/EEE/31343C?text=Imagem+Indisponível'">
                             </div>
-                            <div class="mt-4 border-t border-gray-800 pt-4">
-                                <div class="text-zera-yellow text-2xl font-black italic mb-4">R$ ${prod.price}</div>
-                                <a href="${prod.link}" target="_blank" class="block text-center w-full bg-zera-orange py-3 rounded-xl font-black text-white hover:bg-orange-600 transition uppercase">VER OFERTA</a>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[10px] ${prod.store === 'Amazon' ? 'bg-orange-500' : 'bg-blue-700'} text-white px-2 py-1 rounded-full font-black uppercase">${prod.store}</span>
+                                <span class="text-green-400 font-bold text-sm italic">⭐ ${prod.rating}.0</span>
                             </div>
+                            <h3 class="font-bold text-sm text-gray-100 line-clamp-2 mt-2 h-10">${prod.title}</h3>
                         </div>
-                    `;
-                });
+                        <div class="mt-4 border-t border-gray-800 pt-4">
+                            <div class="text-zera-yellow text-2xl font-black italic mb-4">
+                                ${prod.price === 'CONSULTAR' ? 'R$ CONSULTAR' : 'R$ ' + prod.price}
+                            </div>
+                            <a href="${prod.link}" target="_blank" class="block text-center w-full bg-zera-orange py-3 rounded-xl font-black text-white hover:bg-orange-600 transition uppercase tracking-tighter">VER OFERTA</a>
+                        </div>
+                    </div>
+                `).join('');
+
             } catch (error) {
                 console.error("Erro na busca:", error);
-                alert("ALERTA ZERA ESTOQUE: O servidor não respondeu. Verifique se o arquivo api/search.js existe no seu GitHub.");
-                container.innerHTML = `<p class="col-span-full text-red-500 font-bold">ERRO TÉCNICO: A requisição não chegou ao servidor.</p>`;
+                container.innerHTML = `
+                    <div class="col-span-full p-10 bg-red-900/20 border border-red-500 rounded-3xl text-red-500 font-bold">
+                        SISTEMA INSTÁVEL: Não conseguimos conectar aos parceiros. Tente novamente em instantes.
+                    </div>`;
             }
         }
     </script>
